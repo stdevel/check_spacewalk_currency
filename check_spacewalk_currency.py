@@ -68,7 +68,6 @@ def check_systems():
 	for entry in system_currency:
 		hostname=entry['hostname']
 		#set prefix
-		#if len(system_currency) > 1: this_prefix = "{0} ".format(entry['hostname'])
 		if len(system_currency) > 1: this_prefix = "{0} ".format(hostname)
 		else: this_prefix = ""
 		
