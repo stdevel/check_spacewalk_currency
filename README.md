@@ -1,5 +1,5 @@
 # check_spacewalk_currency
-`check_spacewalk_currency` is a Nagios/Icinga plugin for checking patch currency of hosts managed by Spacewalk, Red Hat Satellite 5.x or SUSE Manager.
+`check_spacewalk_currency` is a Nagios / Icinga plugin for checking patch currency of hosts managed by Spacewalk, Red Hat Satellite 5.x or SUSE Manager.
 
 The script checks the patch currency of one or multiple systems. The following information are gathered by accesing Spacewalk, Red Hat Satellite 5.x or SUSE Manager:
 - Outstanding package update counter per category:
@@ -31,7 +31,7 @@ $ ./check_spacewalk_currency.py -a myauthfile -S giertz.stankowic.loc
 
 # Requirements
 The plugin requires Python 2.6 or newer - it also requires the `xmlrpclic` module which is shipped with `rhnlib`.
-A minimum Spacewalk API version of 11.1 (**TODO: RELEASE?**) is required. The script checks the API version and aborts if you are using an historic version of Spacewalk.
+A minimum Spacewalk vcersion of 1.4 is required - the script checks the API version and aborts if you are using a historic version of Spacewalk.
 
 # Usage
 By default, the script checks a particular system or multiple systems for outstanding bug fixes and critical updates (*combining critical, important and also moderate patch metrics*). It is possible to control this behaviour by specifying additional parameters (*see below*).
