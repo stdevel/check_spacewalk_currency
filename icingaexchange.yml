@@ -1,7 +1,7 @@
 name: check_spacewalk_currency
 description: "file:///README.md"
 url: "https://github.com/stdevel/check_spacewalk_currency"
-tags: Spacewalk
+tags: Spacewalk,SUSE Manager,Red Hat Satellite,Compliance
 vendor: Linux
 target: Operating System
 type: Plugin
@@ -13,6 +13,6 @@ releases:
     files: 
       - 
         name: check_spacewalk_currency.py
-        url: "file:///check_pakfire.py"
+        url: "file:///check_spacewalk_currency.py"
         description: "Release 0.5.0"
         checksum: 1dbc2937ee89f9c9a8c8587060962e76
