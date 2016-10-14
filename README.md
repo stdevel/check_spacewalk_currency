@@ -31,7 +31,7 @@ $ ./check_spacewalk_currency.py -a myauthfile -S giertz.stankowic.loc
 
 # Requirements
 The plugin requires Python 2.6 or newer - it also requires the `xmlrpclic` module which is shipped with `rhnlib`.
-A minimum Spacewalk vcersion of 1.4 is required - the script checks the API version and aborts if you are using a historic version of Spacewalk.
+A minimum Spacewalk version of 1.4 is required - the script checks the API version and aborts if you are using a historic version of Spacewalk.
 
 # Usage
 By default, the script checks a particular system or multiple systems for outstanding bug fixes and critical updates (*combining critical, important and also moderate patch metrics*). It is possible to control this behaviour by specifying additional parameters (*see below*).
