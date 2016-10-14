@@ -15,4 +15,4 @@ releases:
         name: check_spacewalk_currency.py
         url: "file:///check_pakfire.py"
         description: "Release 0.5.0"
-        checksum: 544dd4c2386d1cb22ff197a2ac503f9e
+        checksum: 1dbc2937ee89f9c9a8c8587060962e76
