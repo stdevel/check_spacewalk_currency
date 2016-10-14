@@ -20,13 +20,13 @@ The following shell variables are used:
 
 You might also want to set the HISTFILE variable (*depending on your shell*) to hide the command including the password in the history:
 ```
-$ HISTFILE="" SATELLITE_LOGIN=mylogin SATELLITE_PASSWORD=mypass ./check_repodata.py -S giertz.stankowic.lo c
+$ HISTFILE="" SATELLITE_LOGIN=mylogin SATELLITE_PASSWORD=mypass ./check_spacewalk_currency.py -S giertz.stankowic.loc
 ```
 
 ## Using an authfile
 A better possibility is to create a authfile with permisions **0600**. Just enter the username in the first line and the password in the second line and hand the path to the script:
 ```
-$ ./check_repodata.py -a myauthfile -l centos6-x86_64
+$ ./check_spacewalk_currency.py -a myauthfile -S giertz.stankowic.loc
 ```
 
 # Requirements
@@ -57,3 +57,30 @@ The following parameters can be specified:
 | `--version` | prints programm version and quits |
 
 ## Examples
+The following example checks a single system on the local Spacewalk server:
+```
+$ ./check_spacewalk_currency.py -S giertz.stankowic.loc
+Username: admin
+Password:
+OK: critical updates okay (0), bug fixes okay (0) for giertz.stankowic.loc
+```
+
+Checking multiple systems on a remote Spacewalk server, authentication using authfile:
+```
+$ ./check_spacewalk_currency.py -s st-spacewalk02.stankowic.loc -a spacewalk.auth -S giertz.stankowic.loc -S shittyrobots.test.loc
+OK: giertz.stankowic.loc critical updates okay (0)critical updates okay (0), shittyrobots.test.loc bug fixes okay (0)shittyrobots.test.loc bug fixes okay (0)
+```
+
+Checking a single host on a local Spacewalk installation, also checking total updates, enabling performance data:
+```
+$ ./check_spacewalk_currency.py -S giertz.stankowic.loc -t 20 -T 40 -P
+Username: admin
+Password:
+OK: total updates okay (0), critical updates okay (0), bug fixes okay (0) for giertz.stankowic.loc | 'crit_pkgs'=0;10;20;; 'imp_pkgs'=0;10;20;; 'mod_pkgs'=0;10;20;; 'low_pkgs'=0;;;; 'enh_pkgs'=0;;;; 'bug_pkgs'=0;25;50;; 'score'=0;;;;
+```
+
+When specifying multiple systems along with performance data, the metric names will get prefix according to the particular host:
+```
+$ ./check_spacewalk_currency.py -S giertz.stankowic.loc -S shittyrobots.test.loc -a spacewalk.auth -P
+OK: shittyrobots.test.loc critical updates okay (0)giertz.stankowic.loc critical updates okay (0), shittyrobots.test.loc bug fixes okay (0)giertz.stankowic.loc bug fixes okay (0) | 'shittyrobots.test.loc_crit_pkgs'=0;10;20;; 'shittyrobots.test.loc_imp_pkgs'=0;10;20;; 'shittyrobots.test.loc_mod_pkgs'=0;10;20;; 'shittyrobots.test.loc_low_pkgs'=0;;;; 'shittyrobots.test.loc_enh_pkgs'=0;;;; 'shittyrobots.test.loc_bug_pkgs'=0;25;50;; 'shittyrobots.test.loc_score'=0;;;;'giertz.stankowic.loc_crit_pkgs'=0;10;20;; 'giertz.stankowic.loc_imp_pkgs'=0;10;20;; 'giertz.stankowic.loc_mod_pkgs'=0;10;20;; 'giertz.stankowic.loc_low_pkgs'=0;;;; 'giertz.stankowic.loc_enh_pkgs'=0;;;; 'giertz.stankowic.loc_bug_pkgs'=0;25;50;; 'giertz.stankowic.loc_score'=0;;;;
+```
