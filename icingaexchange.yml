@@ -1,0 +1,18 @@
+name: check_spacewalk_currency
+description: "file:///README.md"
+url: "https://github.com/stdevel/check_spacewalk_currency"
+tags: Spacewalk
+vendor: Linux
+target: Operating System
+type: Plugin
+license: gplv3
+releases: 
+  - 
+    name: 0.5.0
+    description: "0.5.0 Release"
+    files: 
+      - 
+        name: check_spacewalk_currency.py
+        url: "file:///check_pakfire.py"
+        description: "Release 0.5.0"
+        checksum: 544dd4c2386d1cb22ff197a2ac503f9e
