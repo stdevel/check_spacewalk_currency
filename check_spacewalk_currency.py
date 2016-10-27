@@ -71,10 +71,11 @@ def check_systems():
 		if len(system_currency) > 1: this_prefix = "{0} ".format(hostname)
 		else: this_prefix = ""
 		
+				#int(entry['enh'] + entry['imp'] + entry['low'] + entry['crit'] + entry['bug'] + entry['mod']),
 		#total package updates
 		if options.total_warn and options.total_crit:
 			snip_total = "{0}{1}".format(snip_total, check_value(
-				int(entry['enh'] + entry['imp'] + entry['low'] + entry['crit'] + entry['bug'] + entry['mod']),
+				entry['all'],
 				"{0}total updates".format(this_prefix),
 				options.total_warn, options.total_crit
 			))
@@ -138,7 +139,7 @@ def get_currency_data():
 	global system_currency
 	
 	#define URL and login information
-	SATELLITE_URL = "http://"+options.server+"/rpc/api"
+	SATELLITE_URL = "http://{0}/rpc/api".format(options.server)
 	
 	#setup client and key depending on mode if needed
 	client = xmlrpclib.Server(SATELLITE_URL, verbose=options.debug)
@@ -149,13 +150,13 @@ def get_currency_data():
 			#check filemode and read file
 			filemode = oct(stat.S_IMODE(os.lstat(options.authfile).st_mode))
 			if filemode == "0600":
-				if options.debug: print "DEBUG: file permission ("+filemode+") matches 0600"
+				if options.debug: print "DEBUG: file permission ({0}) matches 0600".format(filemode)
 				fo = open(options.authfile, "r")
 				s_username=fo.readline().replace("\n", "")
 				s_password=fo.readline().replace("\n", "")
 				key = client.auth.login(s_username, s_password)
 			else:
-				if options.verbose: print "ERROR: file permission ("+filemode+") not matching 0600!"
+				print "ERROR: file permission ({0}) not matching 0600!".format(filemode)
 				exit(1)
 		except OSError:
 			print "ERROR: file non-existent or permissions not 0600!"
@@ -188,6 +189,9 @@ def get_currency_data():
 		system_sid = client.system.getName(key, system['sid'])
 		if options.debug: print "DEBUG: Hostname for SID '{0}' seems to be '{1}'".format(system['sid'], system_sid['name'])
 		system['hostname']=system_sid['name']
+		#get total package counter
+		upgradable_pkgs = client.system.listLatestUpgradablePackages(key, system['sid'])
+		system['all']=len(upgradable_pkgs)-1
 		#drop host if not requested
 		if options.all_systems == False:
 			if system['hostname'] not in options.system: system_currency[counter]=None
@@ -206,7 +210,7 @@ if __name__ == "__main__":
 	It is also possible to create an authfile (permissions 0600) for usage with this script. The first line needs to contain the username, the second line should consist of the appropriate password. If you're not defining variables or an authfile you will be prompted to enter your login information.
 	
 	Checkout the GitHub page for updates: https://github.com/stdevel/check_spacewalk_currency'''
-	parser = OptionParser(description=desc,version="%prog version 0.5.0")
+	parser = OptionParser(description=desc,version="%prog version 0.5.1")
 	
 	gen_opts = OptionGroup(parser, "Generic options")
 	space_opts = OptionGroup(parser, "Spacewalk options")
