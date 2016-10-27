@@ -111,7 +111,11 @@ def check_systems():
 			"'{13}low_pkgs'={14};;;; "
 			"'{15}enh_pkgs'={16};;;; "
 			"'{17}bug_pkgs'={18};{19};{20};; "
-			"'{21}score'={22};;;;")
+			"'{21}all_pkgs'={22};{23};{24};; "
+			"'{25}score'={26};;;;")
+			if not options.total_warn or not options.total_crit:
+				options.total_warn = "";
+				options.total_crit = "";
 			perfdata = perfdata_snip.format(
 				perfdata,
 				this_prefix, int(entry['crit']), int(options.security_warn), int(options.security_crit),
@@ -120,6 +124,7 @@ def check_systems():
 				this_prefix, int(entry['low']),
 				this_prefix, int(entry['enh']),
 				this_prefix, int(entry['bug']), int(options.bugs_warn), int(options.bugs_crit),
+				this_prefix, int(entry['all']), options.total_warn, options.total_crit,
 				this_prefix, int(entry['score'])
 			)
 		if options.debug: print "DEBUG: perfdata is:\n{0}".format(str(perfdata))
