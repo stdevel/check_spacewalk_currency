@@ -16,11 +16,72 @@ import xmlrpclib
 import os
 import stat
 import getpass
+import math
 
-#list of supported API levels
-supportedAPI = ["11.1","12","13","13.0","14","14.0","15","15.0","16","16.0","17","17.0"]
+#some global variables
 state=0
 system_currency = {}
+system_stats = {}
+
+
+
+#setting logger and supported API levels
+LOGGER =  logging.getLogger('spacewalk-currency')
+SUPPORTED_API_LEVELS = ["11.1", "12", "13", "13.0", "14", "14.0", "15", "15.0", "16", "16.0", "17", "17.0"]
+
+
+
+class APILevelNotSupportedException(Exception):
+    pass
+
+
+
+def check_if_api_is_supported(client):
+#check whether API is supported
+    api_level = client.api.getVersion()
+    if api_level not in SUPPORTED_API_LEVELS:
+        raise APILevelNotSupportedException(
+            "Your API version ({0}) does not support the required calls. "
+            "You'll need API version 1.8 (11.1) or higher!".format(api_level)
+        )
+    else:
+        LOGGER.debug("Supported API version (" + api_level + ") found.")
+
+
+
+def get_credentials(type, input_file=None):
+#retrieve credentials
+    if input_file:
+        LOGGER.debug("Using authfile")
+        try:
+            # check filemode and read file
+            filemode = oct(stat.S_IMODE(os.lstat(input_file).st_mode))
+            if filemode == "0600":
+                LOGGER.debug("File permission matches 0600")
+                with open(input_file, "r") as auth_file:
+                    s_username = auth_file.readline().replace("\n", "")
+                    s_password = auth_file.readline().replace("\n", "")
+                return (s_username, s_password)
+            else:
+                LOGGER.warning("File permissions (" + filemode + ") not matching 0600!")
+                #sys.exit(1)
+        except OSError:
+		LOGGER.warning("File non-existent or permissions not 0600!")
+		#sys.exit(1)
+        	LOGGER.debug("Prompting for login credentials as we have a faulty file")
+		s_username = raw_input(type + " Username: ")
+		s_password = getpass.getpass(type + " Password: ")
+		return (s_username, s_password)
+    elif type.upper()+"_LOGIN" in os.environ and type.upper()+"_PASSWORD" in os.environ:
+	# shell variables
+	LOGGER.debug("Checking shell variables")
+	return (os.environ[type.upper()+"_LOGIN"], os.environ[type.upper()+"_PASSWORD"])
+    else:
+	# prompt user
+	LOGGER.debug("Prompting for login credentials")
+	s_username = raw_input(type + " Username: ")
+	s_password = getpass.getpass(type + " Password: ")
+	return (s_username, s_password)
 
 
 
@@ -42,7 +103,7 @@ def get_return_str():
 
 def check_value(val, desc, warn, crit):
 	#compares value to thresholds and sets codes
-	if options.debug: print  "Comparing '{0}' ({1}) to warning/critical thresholds {2}/{3})".format(val, desc, warn, crit)
+	LOGGER.debug("Comparing '{0}' ({1}) to warning/critical thresholds {2}/{3})".format(val, desc, warn, crit))
 	snip=""
 	if val > crit:
 		#critical
@@ -54,6 +115,46 @@ def check_value(val, desc, warn, crit):
 		set_code(1)
 	else: snip="{0} okay ({1})".format(desc, val)
 	return snip
+
+
+
+def check_stats():
+	#check statistics
+	LOGGER.debug("System statistics is: {0}".format(str(system_stats)))
+	
+	#calculate absolute thresholds
+	options.inactive_warn = int( math.ceil( float(system_stats["total"])*(float(options.inactive_warn)/100) ))
+	options.inactive_crit = int( math.ceil( float(system_stats["total"])*(float(options.inactive_crit)/100) ))
+	options.outdated_warn = int( math.ceil( float(system_stats["total"])*(float(options.outdated_warn)/100) ))
+	options.outdated_crit = int( math.ceil( float(system_stats["total"])*(float(options.outdated_crit)/100) ))
+	LOGGER.debug("Absolute thresholds for inactive (warning/critical): {0}/{1}".format(options.inactive_warn, options.inactive_crit))
+	LOGGER.debug("Absolute thresholds for outdated (warning/critical): {0}/{1}".format(options.outdated_warn, options.outdated_crit))
+	
+	#check values
+	result="{0}, {1}".format(
+		check_value(int(system_stats["outdated"]), "outdated systems", options.outdated_warn, options.outdated_crit),
+		check_value(int(system_stats["inactive"]), "inactive systems", options.inactive_warn, options.inactive_crit)
+	)
+	
+	#set performance data
+	if options.show_perfdata:
+		perfdata = " | "
+		perfdata_snip = ("{0}"
+				"'sys_total'={1};;;; "
+				"'sys_outdated'={2};{3};{4};; "
+				"'sys_inact'={5};{6};{7};;")
+		perfdata = perfdata_snip.format(
+			perfdata,
+			system_stats["total"],
+			system_stats["outdated"], options.outdated_warn, options.outdated_crit,
+			system_stats["inactive"], options.inactive_warn, options.outdated_warn
+		)
+		LOGGER.debug("DEBUG: perfdata is:\n{0}".format(str(perfdata)))
+	else: perfdata=""
+	
+	#return result and die in a fire
+	print "{0}: {1}{2}".format(get_return_str(), result, perfdata)
+        exit(state)
 
 
 
@@ -71,7 +172,6 @@ def check_systems():
 		if len(system_currency) > 1: this_prefix = "{0} ".format(hostname)
 		else: this_prefix = ""
 		
-				#int(entry['enh'] + entry['imp'] + entry['low'] + entry['crit'] + entry['bug'] + entry['mod']),
 		#total package updates
 		if options.total_warn and options.total_crit:
 			snip_total = "{0}{1}".format(snip_total, check_value(
@@ -127,7 +227,7 @@ def check_systems():
 				this_prefix, int(entry['all']), options.total_warn, options.total_crit,
 				this_prefix, int(entry['score'])
 			)
-		if options.debug: print "DEBUG: perfdata is:\n{0}".format(str(perfdata))
+		LOGGER.debug("DEBUG: perfdata is:\n{0}".format(str(perfdata)))
 	else: perfdata=""
 	
 	#return result
@@ -139,70 +239,41 @@ def check_systems():
 
 
 
-def get_currency_data():
-	#get _all_ the currency data
+def get_currency_data(stats_only=False):
+	#get _all_ the currency or statistics data
 	global system_currency
+	global system_stats
 	
-	#define URL and login information
-	SATELLITE_URL = "http://{0}/rpc/api".format(options.server)
+	(username, password) = get_credentials("Satellite", options.authfile)
+	satellite_url = "http://{0}/rpc/api".format(options.server)
+	client = xmlrpclib.Server(satellite_url, verbose=options.debug)
+	key = client.auth.login(username, password)
+	check_if_api_is_supported(client)
 	
-	#setup client and key depending on mode if needed
-	client = xmlrpclib.Server(SATELLITE_URL, verbose=options.debug)
-	if options.authfile:
-		#use authfile
-		if options.debug: print "DEBUG: using authfile"
-		try:
-			#check filemode and read file
-			filemode = oct(stat.S_IMODE(os.lstat(options.authfile).st_mode))
-			if filemode == "0600":
-				if options.debug: print "DEBUG: file permission ({0}) matches 0600".format(filemode)
-				fo = open(options.authfile, "r")
-				s_username=fo.readline().replace("\n", "")
-				s_password=fo.readline().replace("\n", "")
-				key = client.auth.login(s_username, s_password)
-			else:
-				print "ERROR: file permission ({0}) not matching 0600!".format(filemode)
-				exit(1)
-		except OSError:
-			print "ERROR: file non-existent or permissions not 0600!"
-			exit(1)
-	elif "SATELLITE_LOGIN" in os.environ and "SATELLITE_PASSWORD" in os.environ:
-		#shell variables
-		if options.debug: print "DEBUG: checking shell variables"
-		key = client.auth.login(os.environ["SATELLITE_LOGIN"], os.environ["SATELLITE_PASSWORD"])
+	if stats_only:
+		#statistics only
+               system_stats["total"] = len(client.system.listSystems(key))
+               system_stats["inactive"] = len(client.system.listInactiveSystems(key))
+               system_stats["outdated"] = len(client.system.listOutOfDateSystems(key))
 	else:
-		#prompt user
-		if options.debug: print "DEBUG: prompting for login credentials"
-		s_username = raw_input("Username: ")
-		s_password = getpass.getpass("Password: ")
-		key = client.auth.login(s_username, s_password)
-	
-	#check whether the API version matches the minimum required
-	api_level = client.api.getVersion()
-	if not api_level in supportedAPI:
-		print "ERROR: your API version ("+api_level+") does not support the required calls. You'll need API version 1.8 (11.1) or higher!"
-		exit(1)
-	else:
-		if options.debug: print "INFO: supported API version ("+api_level+") found."
-	
-	#get currency data
-	system_currency = client.system.getSystemCurrencyScores(key)
-	
-	#append hostname
-	counter=0
-	for system in system_currency:
-		system_sid = client.system.getName(key, system['sid'])
-		if options.debug: print "DEBUG: Hostname for SID '{0}' seems to be '{1}'".format(system['sid'], system_sid['name'])
-		system['hostname']=system_sid['name']
-		#get total package counter
-		upgradable_pkgs = client.system.listLatestUpgradablePackages(key, system['sid'])
-		system['all']=len(upgradable_pkgs)-1
-		#drop host if not requested
-		if options.all_systems == False:
-			if system['hostname'] not in options.system: system_currency[counter]=None
-		counter=counter+1
-	#clean removed hosts
-	system_currency = [system for system in system_currency if system != None]
+		#currency data only
+		system_currency = client.system.getSystemCurrencyScores(key)
+		
+		#append hostname
+		counter=0
+		for system in system_currency:
+			system_sid = client.system.getName(key, system['sid'])
+			LOGGER.debug("DEBUG: Hostname for SID '{0}' seems to be '{1}'".format(system['sid'], system_sid['name']))
+			system['hostname']=system_sid['name']
+			#get total package counter
+			upgradable_pkgs = client.system.listLatestUpgradablePackages(key, system['sid'])
+			system['all']=len(upgradable_pkgs)-1
+			#drop host if not requested
+			if options.all_systems == False:
+				if system['hostname'] not in options.system: system_currency[counter]=None
+			counter=counter+1
+		#clean removed hosts
+		system_currency = [system for system in system_currency if system != None]
 
 
 
@@ -215,14 +286,16 @@ if __name__ == "__main__":
 	It is also possible to create an authfile (permissions 0600) for usage with this script. The first line needs to contain the username, the second line should consist of the appropriate password. If you're not defining variables or an authfile you will be prompted to enter your login information.
 	
 	Checkout the GitHub page for updates: https://github.com/stdevel/check_spacewalk_currency'''
-	parser = OptionParser(description=desc,version="%prog version 0.5.1")
+	parser = OptionParser(description=desc,version="%prog version 0.5.5")
 	
 	gen_opts = OptionGroup(parser, "Generic options")
 	space_opts = OptionGroup(parser, "Spacewalk options")
 	system_opts = OptionGroup(parser, "System options")
+	stat_opts = OptionGroup(parser, "Statistic options")
 	parser.add_option_group(gen_opts)
 	parser.add_option_group(space_opts)
 	parser.add_option_group(system_opts)
+	parser.add_option_group(stat_opts)
 	
 	#-d / --debug
 	gen_opts.add_option("-d", "--debug", dest="debug", default=False, action="store_true", help="enable debugging outputs")
@@ -235,6 +308,23 @@ if __name__ == "__main__":
 	
 	#-s / --server
 	space_opts.add_option("-s", "--server", dest="server", metavar="SERVER", default="localhost", help="defines the server to use (default: localhost)")
+	
+	
+	#-y / --generic-statistics
+	stat_opts.add_option("-y", "--generic-statistics", dest="gen_stats", default=False, action="store_true", help="checks for inactive and outdated system statistic metrics (default :no)")
+	
+	#-u / --outdated-warning
+	stat_opts.add_option("-u", "--outdated-warning", dest="outdated_warn", default=50, metavar="NUMBER", type=int, help="defines outdated systems warning percentage threshold (default: 50)")
+	
+	#-U / --outdated-critical
+	stat_opts.add_option("-U", "--outdated-critical", dest="outdated_crit", default=80, metavar="NUMBER", type=int, help="defines outdated systems critical percentage threshold (default: 80)")
+	
+	#-n / --inactive-warning
+	stat_opts.add_option("-n", "--inactive-warning", dest="inactive_warn", default=10, metavar="NUMBER", type=int, help="defines inactive systems warning percentage threshold (default: 10)")
+	
+	#-N / --inactive-critical
+	stat_opts.add_option("-N", "--inactive-critical", dest="inactive_crit", default=50, metavar="NUMBER", type=int, help="defines inactive systems critical percentage threshold (default: 50)")
+	
 	
 	#-S / --system
 	system_opts.add_option("-S", "--system", dest="system", default=[], metavar="SYSTEM", action="append", help="defines one or multiple system(s) to check")
@@ -251,7 +341,7 @@ if __name__ == "__main__":
 	#-i / --important-warning
 	system_opts.add_option("-i", "--security-warning", dest="security_warn", metavar="NUMBER", type=int, default=10, help="defines security package (critical, important and moderate security fixes) update warning threshold (default: 10)")
 	
-	#-i / --important-critical
+	#-I / --important-critical
 	system_opts.add_option("-I", "--security-critical", dest="security_crit", metavar="NUMBER", type=int, default=20, help="defines security package (critical, important and moderate security fixes) update critical threshold (default: 20)")
 	
 	#-b / --bugs-warning
@@ -263,15 +353,23 @@ if __name__ == "__main__":
 	#parse arguments
 	(options, args) = parser.parse_args()
 	
+	#set logging
+	if options.debug:
+		logging.basicConfig(level=logging.DEBUG)
+		LOGGER.setLevel(logging.DEBUG)
+	else:
+		logging.basicConfig()
+		LOGGER.setLevel(logging.INFO)
+	
 	#check system specification
-	if options.all_systems == False and len(options.system) == 0:
-		print "ERROR: You need to either specify (a) particular system(s) or all check all systems!"
+	if options.all_systems == False and options.gen_stats == False and not options.system:
+		LOGGER.error("You need to either specify (a) particular system(s) or all check all systems!")
+		exit(1)
 	
 	#debug outputs
-	if options.debug: print "OPTIONS: {0}".format(options)
+	LOGGER.debug("OPTIONS: {0}".format(options))
 	
-	#get currency information
-	get_currency_data()
-	
-	#check systems
-	check_systems()
+	#check statistics or systems
+	get_currency_data(options.gen_stats)
+	if options.gen_stats: check_stats()
+	else: check_systems()

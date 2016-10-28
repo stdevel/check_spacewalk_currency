@@ -54,6 +54,11 @@ The following parameters can be specified:
 | `-I` / `--important-critical` | defines security package (*critical, important and moderate security fixes*) update warning threshold (*default: 20*) |
 | `-b` / `--bugs-warning` | defines bug package update warning threshold (*default: 25*) |
 | `-B` / `--bugs-critical` | defines bug package update warning threshold (*default: 50*) |
+| `-y` / `--generic-statistics` | checks for inactive and outdated system statistic metrics (*default :no*) |
+| `-u` / `--outdated-warning` | defines outdated systems warning percentage threshold (*default: 50*) |
+| `-U` / `--outdated-critical` | defines outdated systems critical percentage threshold (*default: 80*) |
+| `-n` / `--inactive-warning` | defines inactive systems warning percentage threshold (*default: 10*) |
+| `-N` / `--inactive-critical` | defines inactive systems critical percentage threshold (*default: 50*) |
 | `--version` | prints programm version and quits |
 
 ## Examples
@@ -83,4 +88,10 @@ When specifying multiple systems along with performance data, the metric names w
 ```
 $ ./check_spacewalk_currency.py -S giertz.stankowic.loc -S shittyrobots.test.loc -a spacewalk.auth -P
 OK: shittyrobots.test.loc critical updates okay (0)giertz.stankowic.loc critical updates okay (0), shittyrobots.test.loc bug fixes okay (0)giertz.stankowic.loc bug fixes okay (0) | 'shittyrobots.test.loc_crit_pkgs'=0;10;20;; 'shittyrobots.test.loc_imp_pkgs'=0;10;20;; 'shittyrobots.test.loc_mod_pkgs'=0;10;20;; 'shittyrobots.test.loc_low_pkgs'=0;;;; 'shittyrobots.test.loc_enh_pkgs'=0;;;; 'shittyrobots.test.loc_bug_pkgs'=0;25;50;; 'shittyrobots.test.loc_score'=0;;;;'giertz.stankowic.loc_crit_pkgs'=0;10;20;; 'giertz.stankowic.loc_imp_pkgs'=0;10;20;; 'giertz.stankowic.loc_mod_pkgs'=0;10;20;; 'giertz.stankowic.loc_low_pkgs'=0;;;; 'giertz.stankowic.loc_enh_pkgs'=0;;;; 'giertz.stankowic.loc_bug_pkgs'=0;25;50;; 'giertz.stankowic.loc_score'=0;;;;
+```
+
+Checking generic statistics of a Spacewalk system:
+```
+$ ./check_spacewalk_currency.py -a spacewalk.auth -y -P
+OK: outdated systems okay (0), inactive systems okay (0) | 'sys_total'=9;;;; 'sys_outdated'=9;5;8;; 'sys_inact'=0;1;5;;
 ```
