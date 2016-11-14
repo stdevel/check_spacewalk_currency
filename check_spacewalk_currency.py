@@ -267,7 +267,8 @@ def get_currency_data(stats_only=False):
 			system['hostname']=system_sid['name']
 			#get total package counter
 			upgradable_pkgs = client.system.listLatestUpgradablePackages(key, system['sid'])
-			system['all']=len(upgradable_pkgs)-1
+			if(len(upgradable_pkgs)>0): system['all']=len(upgradable_pkgs)-1
+			else: system['all']=0
 			#drop host if not requested
 			if options.all_systems == False:
 				if system['hostname'] not in options.system: system_currency[counter]=None
@@ -286,7 +287,7 @@ if __name__ == "__main__":
 	It is also possible to create an authfile (permissions 0600) for usage with this script. The first line needs to contain the username, the second line should consist of the appropriate password. If you're not defining variables or an authfile you will be prompted to enter your login information.
 	
 	Checkout the GitHub page for updates: https://github.com/stdevel/check_spacewalk_currency'''
-	parser = OptionParser(description=desc,version="%prog version 0.5.5")
+	parser = OptionParser(description=desc,version="%prog version 0.5.6")
 	
 	gen_opts = OptionGroup(parser, "Generic options")
 	space_opts = OptionGroup(parser, "Spacewalk options")
