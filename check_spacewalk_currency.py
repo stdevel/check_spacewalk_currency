@@ -340,10 +340,10 @@ if __name__ == "__main__":
 	system_opts.add_option("-T", "--total-critical", dest="total_crit", metavar="NUMBER", type=int, help="defines total package update critical threshold (default: empty)")
 	
 	#-i / --important-warning
-	system_opts.add_option("-i", "--security-warning", dest="security_warn", metavar="NUMBER", type=int, default=10, help="defines security package (critical, important and moderate security fixes) update warning threshold (default: 10)")
+	system_opts.add_option("-i", "--security-warning", "--important-warning", dest="security_warn", metavar="NUMBER", type=int, default=10, help="defines security package (critical, important and moderate security fixes) update warning threshold (default: 10)")
 	
 	#-I / --important-critical
-	system_opts.add_option("-I", "--security-critical", dest="security_crit", metavar="NUMBER", type=int, default=20, help="defines security package (critical, important and moderate security fixes) update critical threshold (default: 20)")
+	system_opts.add_option("-I", "--security-critical", "--important-critical", dest="security_crit", metavar="NUMBER", type=int, default=20, help="defines security package (critical, important and moderate security fixes) update critical threshold (default: 20)")
 	
 	#-b / --bugs-warning
 	system_opts.add_option("-b", "--bugs-warning", dest="bugs_warn", type=int, metavar="NUMBER", default=25, help="defines bug package update warning threshold (default: 25)")
