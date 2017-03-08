@@ -17,6 +17,7 @@ import os
 import stat
 import getpass
 import math
+import sys
 
 #some global variables
 state=0
@@ -247,34 +248,39 @@ def get_currency_data(stats_only=False):
 	(username, password) = get_credentials("Satellite", options.authfile)
 	satellite_url = "http://{0}/rpc/api".format(options.server)
 	client = xmlrpclib.Server(satellite_url, verbose=options.debug)
-	key = client.auth.login(username, password)
-	check_if_api_is_supported(client)
-	
-	if stats_only:
-		#statistics only
-               system_stats["total"] = len(client.system.listSystems(key))
-               system_stats["inactive"] = len(client.system.listInactiveSystems(key))
-               system_stats["outdated"] = len(client.system.listOutOfDateSystems(key))
-	else:
-		#currency data only
-		system_currency = client.system.getSystemCurrencyScores(key)
-		
-		#append hostname
-		counter=0
-		for system in system_currency:
-			system_sid = client.system.getName(key, system['sid'])
-			LOGGER.debug("DEBUG: Hostname for SID '{0}' seems to be '{1}'".format(system['sid'], system_sid['name']))
-			system['hostname']=system_sid['name']
-			#get total package counter
-			upgradable_pkgs = client.system.listLatestUpgradablePackages(key, system['sid'])
-			if(len(upgradable_pkgs)>0): system['all']=len(upgradable_pkgs)-1
-			else: system['all']=0
-			#drop host if not requested
-			if options.all_systems == False:
-				if system['hostname'] not in options.system: system_currency[counter]=None
-			counter=counter+1
-		#clean removed hosts
-		system_currency = [system for system in system_currency if system != None]
+
+        try:
+            key = client.auth.login(username, password)
+            check_if_api_is_supported(client)
+            
+            if stats_only:
+                    #statistics only
+                   system_stats["total"] = len(client.system.listSystems(key))
+                   system_stats["inactive"] = len(client.system.listInactiveSystems(key))
+                   system_stats["outdated"] = len(client.system.listOutOfDateSystems(key))
+            else:
+                    #currency data only
+                    system_currency = client.system.getSystemCurrencyScores(key)
+                    
+                    #append hostname
+                    counter=0
+                    for system in system_currency:
+                            system_sid = client.system.getName(key, system['sid'])
+                            LOGGER.debug("DEBUG: Hostname for SID '{0}' seems to be '{1}'".format(system['sid'], system_sid['name']))
+                            system['hostname']=system_sid['name']
+                            #get total package counter
+                            upgradable_pkgs = client.system.listLatestUpgradablePackages(key, system['sid'])
+                            if(len(upgradable_pkgs)>0): system['all']=len(upgradable_pkgs)-1
+                            else: system['all']=0
+                            #drop host if not requested
+                            if options.all_systems == False:
+                                    if system['hostname'] not in options.system: system_currency[counter]=None
+                            counter=counter+1
+                    #clean removed hosts
+                    system_currency = [system for system in system_currency if system != None]
+        except:
+            print("Unauthenticated.")
+            sys.exit(1)
 
 
 
